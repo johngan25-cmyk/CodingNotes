@@ -25,7 +25,7 @@ if (MONGODB_URI) {
 
 app.use('/api',syncDirectory);
 
-app.get('/api',getDirectory);
+app.use('/api',getDirectory);
 
 
 
