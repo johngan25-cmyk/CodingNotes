@@ -3,7 +3,7 @@ import { FolderOpen, Folder, FileText, ChevronRight, ChevronDown, Monitor } from
 
 // Recursive Component to handle expandable folders and file item selection
 function FileNode({ node, selectedNode, onSelect }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(node?.name === 'root');
 
   if (!node) return null;
 
@@ -69,7 +69,7 @@ export default function App() {
   const [error, setError] = useState('');
 
   // Using GET as discussed since it's a direct fetch now
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/api/directory`)
