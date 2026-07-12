@@ -1,4 +1,5 @@
 import express from 'express'
+import Directory from '../models/Directory.js';
 const router = express.Router();
 
 router.get('/directory',async (req, res) => {

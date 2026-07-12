@@ -1,3 +1,4 @@
+import 'dotenv/config'; // <-- MUST BE LINE 1
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -7,7 +8,7 @@ import Directory from './models/Directory.js';
 import syncDirectory from './routes/syncDirectory.js'
 import getDirectory from './routes/getDirectory.js'
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI;
 
 app.use(cors());
