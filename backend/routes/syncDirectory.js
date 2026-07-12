@@ -14,7 +14,7 @@ router.post('/sync-directory', async (req, res) => {
     await Directory.findOneAndUpdate(
       { key: 'master_tree' },
       { treeData: incomingTree },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     console.log(`🔄 Workspace tree saved to Database from App root: ${incomingTree.name}`);
