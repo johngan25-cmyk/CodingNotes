@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Folder, ArrowLeft } from 'lucide-react';
+import { Folder, ArrowLeft, Loader2, FileText } from 'lucide-react';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Clean coding theme
 import FileNode from './components/FileNode';
-import Breadcrumbs from './components/Breadcrumbs';
 
 export default function App() {
   const [treeData, setTreeData] = useState(null);
   const [focusedNode, setFocusedNode] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [markdownContent, setMarkdownContent] = useState('');
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [openFolders, setOpenFolders] = useState({});
   const [error, setError] = useState('');
 
@@ -25,97 +28,55 @@ export default function App() {
       .catch((err) => setError(err.message));
   }, []);
 
-  const buildBreadcrumbs = () => {
-  if (!selectedNode || !treeData) return [];
-
-  const path = [];
-  
-  // Helper to trace the node lineage from root to selection
-  const traverse = (currentNode, targetId, currentTrail) => {
-    if (!currentNode) return false;
-    
-    const newTrail = [...currentTrail, { name: currentNode.name, id: currentNode.id || currentNode.fullPath }];
-    
-    // Check match on ID (or fallback to fullPath if ID isn't there yet)
-    if ((currentNode.id && currentNode.id === targetId) || currentNode.fullPath === targetId) {
-      path.push(...newTrail);
-      return true;
+  useEffect(() => {
+    if (!selectedNode) {
+      setMarkdownContent('');
+      return;
     }
-    
-    if (currentNode.children) {
-      for (let child of currentNode.children) {
-        if (traverse(child, targetId, newTrail)) return true;
-      }
-    }
-    return false;
-  };
 
-  traverse(treeData, selectedNode.id || selectedNode.fullPath, []);
-  return path;
-};
-
- const findNodeById = (root, id) => {
-  if (!root || !id) return null;
-  if (root.id === id || root.fullPath === id || (id === 'root' && root.name === 'root')) {
-    return root;
-  }
-  if (root.children) {
-    for (let child of root.children) {
-      const found = findNodeById(child, id);
-      if (found) return found;
+    const isFolder = selectedNode.isDirectory || selectedNode.name === 'root';
+    
+    if (!isFolder && selectedNode.fullPath) {
+      setIsLoadingContent(true);
+      setError('');
+      
+      fetch(`${BACKEND_URL}/content?path=${encodeURIComponent(selectedNode.fullPath)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Could not read file contents from database');
+          return res.json();
+        })
+        .then((data) => {
+          setMarkdownContent(data.textData || '');
+        })
+        .catch((err) => {
+          setError(err.message);
+          setMarkdownContent('');
+        })
+        .finally(() => {
+          setIsLoadingContent(false);
+        });
+    } else {
+      setMarkdownContent('');
     }
-  }
-  return null;
-};
- const findNodeAndAncestors = (root, targetId, ancestors = []) => {
-  if (!root || !targetId) return null;
-  
-  const currentKey = root.id || root.fullPath;
-  
-  if (root.id === targetId || root.fullPath === targetId || (targetId === 'root' && root.name === 'root')) {
-    return { node: root, ancestors };
-  }
-  
-  if (root.children) {
-    for (let child of root.children) {
-      const found = findNodeAndAncestors(child, targetId, [...ancestors, currentKey]);
-      if (found) return found;
-    }
-  }
-  return null;
-};
+  }, [selectedNode]);
 
-const handleBreadcrumbClick = (targetId) => {
-  const result = findNodeAndAncestors(treeData, targetId);
-  
-  if (result) {
-    const { node, ancestors } = result;
-    setSelectedNode(node);
-    
-    // Create a new open folder state map containing all ancestors + the target itself
-    const newOpenFolders = { ...openFolders };
-    ancestors.forEach(id => {
-      if (id) newOpenFolders[id] = true;
-    });
-    
-    const nodeKey = node.id || node.fullPath;
-    if (nodeKey) newOpenFolders[nodeKey] = true;
-    
-    setOpenFolders(newOpenFolders);
-  }
-};
+  const activeDisplayTree = focusedNode || treeData;
+  const fileExtension = selectedNode?.name?.split('.').pop()?.toLowerCase();
+const highlightLanguage = fileExtension === 'html' ? 'html' : 'markdown';
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-6 md:p-10">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <header className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">App Markdown Bridge Workspace</h1>
-          <p className="text-xs text-slate-500 mt-0.5">High-Performance Clean Layout & Enhanced Navigation System</p>
+          <p className="text-xs text-slate-500 mt-0.5">High-Performance Clean Layout & Code Workspace View</p>
         </header>
 
         {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg p-3 text-xs mb-4">{error}</div>}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <aside className="md:col-span-1 bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[520px]">
+          {/* Tree Explorer Sidebar */}
+          <aside className="md:col-span-1 bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[650px]">
             <div className="flex items-center justify-between mb-3 shrink-0">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {focusedNode ? `Scope: ${focusedNode.name}` : 'Workspace Tree'}
@@ -131,9 +92,9 @@ const handleBreadcrumbClick = (targetId) => {
               )}
             </div>
             <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-              {focusedNode || treeData ? (
+              {activeDisplayTree ? (
                 <FileNode 
-                  node={focusedNode || treeData} 
+                  node={activeDisplayTree} 
                   selectedNode={selectedNode} 
                   onSelect={setSelectedNode}
                   openFolders={openFolders}
@@ -146,32 +107,69 @@ const handleBreadcrumbClick = (targetId) => {
             </div>
           </aside>
 
-          <main className="md:col-span-3 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col h-[520px]">
-            <Breadcrumbs breadcrumbs={buildBreadcrumbs()} onBreadcrumbClick={handleBreadcrumbClick} />
-            
-            <div className="p-6 flex flex-col justify-center items-center h-full text-center">
-              {selectedNode ? (
-                <div className="w-full max-w-xl bg-slate-50 border border-slate-200 rounded-lg p-6 font-mono text-left text-xs space-y-3 shadow-2xs">
-                  <div><span className="text-slate-400 font-bold">NAME:</span> <span className="text-slate-800 ml-2 font-semibold text-sm">{selectedNode.name}</span></div>
-                  <div>
-                    <span className="text-slate-400 font-bold">TYPE:</span> 
-                    <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold ${selectedNode.isDirectory || selectedNode.name === 'root' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {selectedNode.isDirectory || selectedNode.name === 'root' ? 'DIRECTORY' : 'MARKDOWN FILE'}
-                    </span>
+          {/* Main Inspection & Raw Formatter Panel */}
+          <main className="md:col-span-3 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col h-[650px]">
+            {selectedNode ? (
+              <div className="flex flex-col h-full">
+                {/* Document Metadata Bar */}
+                <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText size={16} className="text-blue-500 shrink-0" />
+                    <span className="font-semibold text-slate-900 text-sm truncate">{selectedNode.name}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 font-bold">FULL ABSOLUTE PATH:</span>
-                    <p className="text-slate-600 mt-1 bg-white p-2 border border-slate-200 rounded break-all shadow-3xs">{selectedNode.fullPath || 'N/A'}</p>
-                  </div>
-                  {selectedNode.children && <div><span className="text-slate-400 font-bold">CONTENTS SUMMARY:</span> <span className="text-slate-600 ml-2">{selectedNode.children.length} direct elements nested inside.</span></div>}
+                  <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-mono truncate max-w-xs">
+                    {selectedNode.fullPath}
+                  </span>
                 </div>
-              ) : (
-                <div className="text-slate-400">
-                  <Folder size={40} className="mx-auto mb-2 opacity-30 stroke-1" />
-                  <p className="text-sm">Click any item in the tree explorer sidebar to activate the system navigation tracking elements.</p>
-                </div>
-              )}
-            </div>
+
+                {/* Updated Content Viewer Window */}
+<div className="flex-1 bg-white min-h-0 relative">
+  {isLoadingContent ? (
+    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+      <Loader2 className="animate-spin text-blue-500" size={24} />
+      <p className="text-xs">Fetching file contents...</p>
+    </div>
+  ) : (selectedNode.isDirectory || selectedNode.name === 'root') ? (
+    <div className="m-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-4 text-xs font-medium">
+      Folder Node Selected. Open nested items in the explorer panel to inspect content.
+    </div>
+  ) : highlightLanguage === 'html' ? (
+    /* 🔥 SANDBOXED IFRAME FOR FULL WEBPAGE DOCUMENTS */
+    <iframe
+      title="HTML Note Preview"
+      srcDoc={markdownContent}
+      sandbox="allow-scripts" // Allows internal JS to execute safely inside the frame
+      className="w-full h-full border-0 absolute inset-0"
+    />
+  ) : (
+    /* 📄 SHOW CODE FORMATTER FOR .md FILES */
+    <div className="h-full overflow-auto font-mono text-xs">
+      <SyntaxHighlighter 
+        language="markdown" 
+        style={oneLight}
+        customStyle={{
+          margin: 0,
+          padding: '1.5rem',
+          background: '#ffffff',
+          fontSize: '0.8rem',
+          lineHeight: '1.5',
+          height: '100%',
+          width: '100%'
+        }}
+        wrapLongLines={true}
+      >
+        {markdownContent}
+      </SyntaxHighlighter>
+    </div>
+  )}
+</div>
+              </div>
+            ) : (
+              <div className="p-6 flex flex-col justify-center items-center h-full text-center">
+                <Folder size={40} className="mx-auto mb-2 opacity-30 stroke-1 text-slate-400" />
+                <p className="text-sm text-slate-400">Click any document in the tree explorer sidebar to load its formatted markdown source.</p>
+              </div>
+            )}
           </main>
         </div>
       </div>

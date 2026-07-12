@@ -8,6 +8,7 @@ import Directory from './models/Directory.js';
 import syncDirectory from './routes/syncDirectory.js'
 import getDirectory from './routes/getDirectory.js'
 import bulkSync from './routes/bulkSync.js'
+import fetchFileContent from './routes/fetchFileContent.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +32,8 @@ app.use('/api',syncDirectory);
 app.use('/api',getDirectory);
 
 app.use('/api',bulkSync)
+
+app.use('/api',fetchFileContent)
 
 // Existing local/serverless runtime execution handlers
 if (process.env.NODE_ENV !== 'production') {
