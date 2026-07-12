@@ -8,7 +8,7 @@ import syncDirectory from './routes/syncDirectory.js'
 import getDirectory from './routes/getDirectory.js'
 const app = express();
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGO_URI;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
