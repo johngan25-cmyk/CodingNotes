@@ -9,68 +9,71 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); // Increased limit in case the app sends a large folder tree
 
-// This variable will hold the latest directory structure sent by your app
-let cachedDirectoryStructure = {
-  currentPath: '',
-  parentPath: '',
-  items: [] // Array of { name, isDirectory, fullPath }
-};
+// This variable now stores a single root node object instead of an array
+let cachedDirectoryStructure = {};
 
 /**
- * Endpoint A (For the App): Receives the updated structure from your app
- * Whenever the app adds/deletes/changes files, it hits this endpoint.
+ * Endpoint A (For the App): Receives the completely nested tree from your app
+ * POST request because the app is pushing a large structure body.
  */
 app.post('/api/sync-directory', (req, res) => {
-  const { currentPath, parentPath, items } = req.body;
+  const treeData = req.body;
 
-  if (!items || !Array.isArray(items)) {
-    return res.status(400).json({ error: 'Invalid directory data format structure' });
+  // Basic layout shape validation checking for root structure elements
+  if (!treeData || typeof treeData !== 'object' || !treeData.name) {
+    return res.status(400).json({ error: 'Invalid nested tree format structure' });
   }
 
-  // Save the structural map sent by the app
-  cachedDirectoryStructure = {
-    currentPath: currentPath || '',
-    parentPath: parentPath || '',
-    items: items
-  };
+  // Save the full root folder tree sent by the app directly to memory cache
+  cachedDirectoryStructure = treeData;
 
-  console.log(`🔄 Directory updated via App sync at path: ${currentPath}`);
-  res.json({ message: 'Directory map synced successfully!' });
+  console.log(`🔄 Entire workspace tree synced from App root: ${treeData.name}`);
+  res.json({ message: 'Nested workspace tree synced successfully!' });
 });
 
 /**
  * Endpoint B (For the Website): Serves the structure to the frontend UI
- * Providing static structure mock for initial website testing
+ * Switched to GET as it's a direct resource retrieval now.
  */
-app.post('/api/directory', (req, res) => {
-  // If the cache is empty, we fall back to a realistic mock layout structure
-  if (!cachedDirectoryStructure.items || cachedDirectoryStructure.items.length === 0) {
+app.get('/api/directory', (req, res) => {
+  // Fall back to a nested mock layout structure if the app hasn't pushed anything yet
+  if (!cachedDirectoryStructure.name) {
     return res.json({
-      currentPath: "C:/apps/my-app/data",
-      parentPath: "C:/apps/my-app",
-      items: [
+      name: "root",
+      isDirectory: true,
+      fullPath: "C:/apps/my-app",
+      children: [
         {
           name: "documentation",
           isDirectory: true,
-          fullPath: "C:/apps/my-app/data/documentation"
+          fullPath: "C:/apps/my-app/documentation",
+          children: [
+            {
+              name: "getting-started.md",
+              isDirectory: false,
+              fullPath: "C:/apps/my-app/documentation/getting-started.md"
+            }
+          ]
         },
         {
           name: "README.md",
           isDirectory: false,
-          fullPath: "C:/apps/my-app/data/README.md"
+          fullPath: "C:/apps/my-app/README.md"
         },
         {
           name: "TODO.md",
           isDirectory: false,
-          fullPath: "C:/apps/my-app/data/TODO.md"
+          fullPath: "C:/apps/my-app/TODO.md"
         }
       ]
     });
   }
 
-  // Otherwise return whatever active sync layout has been pushed by the app
+  // Return the active synced tree structure cached from the app
   res.json(cachedDirectoryStructure);
 });
+
+
 
 
 
