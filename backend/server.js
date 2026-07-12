@@ -5,6 +5,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 import Directory from './models/Directory.js';
 import syncDirectory from './routes/syncDirectory.js'
+import getDirectory from './routes/getDirectory.js'
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -24,7 +25,7 @@ if (MONGODB_URI) {
 
 app.use('/api',syncDirectory);
 
-app.get('/api/directory', );
+app.get('/api',getDirectory);
 
 
 
