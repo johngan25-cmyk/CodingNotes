@@ -7,6 +7,8 @@ import mongoose from 'mongoose';
 import Directory from './models/Directory.js';
 import syncDirectory from './routes/syncDirectory.js'
 import getDirectory from './routes/getDirectory.js'
+import bulkSync from './routes/bulkSync.js'
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI;
@@ -28,7 +30,7 @@ app.use('/api',syncDirectory);
 
 app.use('/api',getDirectory);
 
-
+app.use('/api',bulkSync)
 
 // Existing local/serverless runtime execution handlers
 if (process.env.NODE_ENV !== 'production') {
