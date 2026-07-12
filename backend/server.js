@@ -39,13 +39,40 @@ app.post('/api/sync-directory', (req, res) => {
 });
 
 /**
- * Endpoint B (For the Website): Serves the cached app structure to the frontend UI
- * Replaces the old drive scanning endpoint.
+ * Endpoint B (For the Website): Serves the structure to the frontend UI
+ * Providing static structure mock for initial website testing
  */
 app.post('/api/directory', (req, res) => {
-  // The website simply pulls whatever structure the app last provided
-  res.json({msg:"yet to sync app"});
+  // If the cache is empty, we fall back to a realistic mock layout structure
+  if (!cachedDirectoryStructure.items || cachedDirectoryStructure.items.length === 0) {
+    return res.json({
+      currentPath: "C:/apps/my-app/data",
+      parentPath: "C:/apps/my-app",
+      items: [
+        {
+          name: "documentation",
+          isDirectory: true,
+          fullPath: "C:/apps/my-app/data/documentation"
+        },
+        {
+          name: "README.md",
+          isDirectory: false,
+          fullPath: "C:/apps/my-app/data/README.md"
+        },
+        {
+          name: "TODO.md",
+          isDirectory: false,
+          fullPath: "C:/apps/my-app/data/TODO.md"
+        }
+      ]
+    });
+  }
+
+  // Otherwise return whatever active sync layout has been pushed by the app
+  res.json(cachedDirectoryStructure);
 });
+
+
 
 /**
  * Endpoint C (For Website/App): Reads the file content
