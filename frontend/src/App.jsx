@@ -83,7 +83,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-6 md:p-10">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-8xl ">
         
         {/* Header */}
         <header className="mb-6">
@@ -100,7 +100,7 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           
           {/* Tree Explorer Sidebar Container */}
-          <aside className="md:col-span-1 bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[500px]">
+          <aside className="md:col-span-1 bg-gray-100 border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col h-[500px]">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">Workspace Tree</h2>
             <div className="flex-1 overflow-y-auto space-y-1 pr-1">
               {treeData ? (
@@ -116,7 +116,7 @@ export default function App() {
           </aside>
 
           {/* Simple Display Monitor Area */}
-          <main className="md:col-span-3 bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col h-[500px]">
+          <main className="md:col-span-3 bg-gray-100 border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col h-[500px]">
             <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0">
               <Monitor size={15} className="text-slate-400" />
               <span className="text-xs font-semibold text-slate-600">Selection Inspection Panel</span>

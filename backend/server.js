@@ -26,6 +26,8 @@ app.post('/api/sync-directory', (req, res) => {
 
   // Save the full root folder tree sent by the app directly to memory cache
   cachedDirectoryStructure = treeData;
+  console.log(treeData);
+  
 
   console.log(`🔄 Entire workspace tree synced from App root: ${treeData.name}`);
   res.json({ message: 'Nested workspace tree synced successfully!' });
@@ -77,40 +79,6 @@ app.get('/api/directory', (req, res) => {
 
 
 
-/**
- * Endpoint C (For Website/App): Reads the file content
- */
-app.post('/api/file/read', (req, res) => {
-  const { filePath } = req.body;
-  if (!filePath || path.extname(filePath) !== '.md') {
-    return res.status(400).json({ error: 'Valid Markdown (.md) path is required' });
-  }
-
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) return res.status(404).json({ error: 'File unreadable', details: err.message });
-    res.json({ content: data });
-  });
-});
-
-/**
- * Endpoint D (For Website/App): Saves file edits
- */
-app.post('/api/file/save', (req, res) => {
-  const { filePath, content } = req.body;
-  if (!filePath || content === undefined || path.extname(filePath) !== '.md') {
-    return res.status(400).json({ error: 'Valid Markdown path and content required' });
-  }
-
-  const targetDir = path.dirname(filePath);
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-
-  fs.writeFile(filePath, content, 'utf8', (err) => {
-    if (err) return res.status(500).json({ error: 'Failed to write file', details: err.message });
-    res.json({ message: 'Saved successfully!' });
-  });
-});
 
 // Keep the local port listener for your local tests
 if (process.env.NODE_ENV !== 'production') {
