@@ -2,90 +2,35 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-
+import mongoose from 'mongoose';
+import Directory from './models/Directory.js';
+import syncDirectory from './routes/syncDirectory.js'
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // Increased limit in case the app sends a large folder tree
+app.use(express.json({ limit: '50mb' }));
 
-// This variable now stores a single root node object instead of an array
-let cachedDirectoryStructure = {};
-
-/**
- * Endpoint A (For the App): Receives the completely nested tree from your app
- * POST request because the app is pushing a large structure body.
- */
-app.post('/api/sync-directory', (req, res) => {
-  const treeData = req.body;
-
-  // Basic layout shape validation checking for root structure elements
-  if (!treeData || typeof treeData !== 'object' || !treeData.name) {
-    return res.status(400).json({ error: 'Invalid nested tree format structure' });
-  }
-
-  // Save the full root folder tree sent by the app directly to memory cache
-  cachedDirectoryStructure = treeData;
-  console.log(treeData);
-  
-
-  console.log(`🔄 Entire workspace tree synced from App root: ${treeData.name}`);
-  res.json({ message: 'Nested workspace tree synced successfully!' });
-});
-
-/**
- * Endpoint B (For the Website): Serves the structure to the frontend UI
- * Switched to GET as it's a direct resource retrieval now.
- */
-app.get('/api/directory', (req, res) => {
-  // Fall back to a nested mock layout structure if the app hasn't pushed anything yet
-  if (!cachedDirectoryStructure.name) {
-    return res.json({
-      name: "root",
-      isDirectory: true,
-      fullPath: "C:/apps/my-app",
-      children: [
-        {
-          name: "documentation",
-          isDirectory: true,
-          fullPath: "C:/apps/my-app/documentation",
-          children: [
-            {
-              name: "getting-started.md",
-              isDirectory: false,
-              fullPath: "C:/apps/my-app/documentation/getting-started.md"
-            }
-          ]
-        },
-        {
-          name: "README.md",
-          isDirectory: false,
-          fullPath: "C:/apps/my-app/README.md"
-        },
-        {
-          name: "TODO.md",
-          isDirectory: false,
-          fullPath: "C:/apps/my-app/TODO.md"
-        }
-      ]
-    });
-  }
-
-  // Return the active synced tree structure cached from the app
-  res.json(cachedDirectoryStructure);
-});
-
-
-
-
-
-
-// Keep the local port listener for your local tests
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Sync Bridge Backend running on http://localhost:${PORT}`);
-  });
+// Establish connection to MongoDB Atlas database instance
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => console.log('🍃 Connected to MongoDB permanently'))
+    .catch((err) => console.error('❌ Database connection failure:', err.message));
+} else {
+  console.warn('⚠️ Warning: MONGODB_URI environment variable is missing.');
 }
 
-// Export the app for Vercel's serverless environment
+
+app.use('/api',syncDirectory);
+
+app.get('/api/directory', );
+
+
+
+// Existing local/serverless runtime execution handlers
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => console.log(`🚀 Sync Bridge Backend running on port ${PORT}`));
+}
+
 export default app;
