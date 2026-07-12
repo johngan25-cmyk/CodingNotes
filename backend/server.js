@@ -44,7 +44,7 @@ app.post('/api/sync-directory', (req, res) => {
  */
 app.post('/api/directory', (req, res) => {
   // The website simply pulls whatever structure the app last provided
-  res.json(cachedDirectoryStructure);
+  res.json({msg:"yet to sync app"});
 });
 
 /**

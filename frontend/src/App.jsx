@@ -22,7 +22,7 @@ export default function App() {
   // 1. Fetch directory contents from the backend
   const fetchDirectory = async (pathToSend = '') => {
     try {
-      const response = await fetch(`${BACKEND_URL}/directory`, {
+      const response = await fetch(`${BACKEND_URL}/api/directory`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: pathToSend }),
@@ -45,7 +45,7 @@ export default function App() {
   // 2. Load content of a specific markdown file
   const loadFile = async (filePath) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/file/read`, {
+      const response = await fetch(`${BACKEND_URL}/api/file/read`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath }),
@@ -68,7 +68,7 @@ export default function App() {
       return;
     }
     try {
-      const response = await fetch(`${BACKEND_URL}/file/save`, {
+      const response = await fetch(`${BACKEND_URL}/api/file/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: activeFilePath, content }),
@@ -93,7 +93,7 @@ export default function App() {
     const fullNewPath = `${currentPath}/${cleanName}`;
 
     try {
-      const response = await fetch(`${BACKEND_URL}/file/save`, {
+      const response = await fetch(`${BACKEND_URL}/api/file/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: fullNewPath, content: '# New Markdown File\n' }),
