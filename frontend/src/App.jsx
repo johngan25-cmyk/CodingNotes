@@ -29,7 +29,7 @@ export default function App() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to fetch directory');
-      
+      console.log(data);
       setCurrentPath(data.currentPath);
       setDirData({ parentPath: data.parentPath, items: data.items });
     } catch (err) {
