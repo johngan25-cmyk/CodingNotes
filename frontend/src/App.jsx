@@ -72,7 +72,7 @@ export default function App() {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/directory`)
+    fetch(`${BACKEND_URL}/api/directory`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load tree metadata');
         return res.json();
