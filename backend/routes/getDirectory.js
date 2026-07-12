@@ -1,7 +1,7 @@
 import express from 'express'
 const router = express.Router();
 
-router.post('/directory',async (req, res) => {
+router.get('/directory',async (req, res) => {
   try {
     const record = await Directory.findOne({ key: 'master_tree' });
 
