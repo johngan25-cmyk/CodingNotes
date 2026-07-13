@@ -9,6 +9,9 @@ import syncDirectory from './routes/syncDirectory.js'
 import bulkSync from './routes/bulkSync.js'
 import fetchFileContent from './routes/fetchFileContent.js'
 import FileContentCollection from './routes/FileContentCollection.js'
+import getUpdatedAt from './routes/getUpdatedAt.js'
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI;
@@ -31,6 +34,8 @@ app.use('/api',syncDirectory);
 app.use('/api',bulkSync)
 
 app.use('/api',fetchFileContent)
+
+app.use('/api',getUpdatedAt);
 
 app.use('/api' , FileContentCollection)
 // Existing local/serverless runtime execution handlers

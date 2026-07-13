@@ -45,4 +45,29 @@ router.post('/bulkSync', async (req, res) => {
   }
 });
 
+
+/**
+ * @route   GET /api/content/all-metadata
+ * @desc    Fetch filePath and updatedAt for ALL documents in the collection in bulk
+ */
+router.get('/content/all-metadata', async (req, res) => {
+  try {
+    // Selects only filePath and updatedAt, explicitly excluding the _id field
+    // ⚠️ Change 'FileContent' to match your exact Mongoose model name if different!
+    const allMeta = await FileContent.find({})
+      .select('filePath updatedAt -_id')
+      .lean(); // .lean() converts documents to plain JS objects for maximum speed
+
+    return res.status(200).json({
+      count: allMeta.length,
+      files: allMeta
+    });
+  } catch (error) {
+    console.error("Failed to fetch all file metadata:", error);
+    return res.status(500).json({ 
+      error: "Internal server error fetching metadata catalog", 
+      details: error.message 
+    });
+  }
+});
 export default router;
