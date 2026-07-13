@@ -137,4 +137,55 @@ router.delete('/delete-file-content', async (req, res) => {
   }
 });
 
+
+// PATCH endpoint to update multiple file paths at once in a single round-trip
+router.patch('/update-file-paths-bulk', async (req, res) => {
+  try {
+    const { pathUpdates } = req.body; // Expects an array of path change objects
+
+    // 1. Validation Guard
+    if (!pathUpdates || !Array.isArray(pathUpdates) || pathUpdates.length === 0) {
+      return res.status(400).json({ 
+        error: "Invalid payload layout", 
+        details: "Please provide a 'pathUpdates' array containing objects with oldPath and newPath fields." 
+      });
+    }
+
+    // 2. Map the incoming array into atomic MongoDB updateOne actions
+    const bulkOperations = pathUpdates.map(item => {
+      if (!item.oldPath || !item.newPath) {
+        throw new Error("Each item in pathUpdates must contain both 'oldPath' and 'newPath'.");
+      }
+      
+      return {
+        updateOne: {
+          filter: { filePath: item.oldPath },
+          update: { $set: { filePath: item.newPath } }
+        }
+      };
+    });
+
+    // 3. Execute all path adjustments simultaneously
+    const result = await FileContent.bulkWrite(bulkOperations);
+
+    return res.status(200).json({
+      message: "Bulk path adjustments executed successfully",
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount
+    });
+
+  } catch (error) {
+    console.error("Bulk path update failed:", error);
+    
+    // Handle structural schema errors thrown inside the map loop
+    if (error.message.includes("must contain both")) {
+      return res.status(400).json({ error: "Validation error", details: error.message });
+    }
+
+    return res.status(500).json({ 
+      error: "Database bulk operation failed", 
+      details: error.message 
+    });
+  }
+});
 export default router;
