@@ -5,7 +5,7 @@ export default function SidebarExplorer({ activeDisplayTree, selectedNode, onSel
   return (
     <aside className="md:col-span-1 bg-white border border-slate-200 rounded-xl px-1 py-4 shadow-xs flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between mb-3 shrink-0">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <h2 className="text-xs pl-2 font-semibold uppercase tracking-wider text-slate-400">
           {focusedNode ? `Scope: ${focusedNode.name}` : 'Workspace Tree'}
         </h2>
         {focusedNode && (
