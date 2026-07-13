@@ -110,7 +110,9 @@ export default function App() {
       triggerToast("success", "Changes saved safely!");
     } catch (err) {
       triggerToast("error", err.message);
-    } 
+    } finally{
+      setIsSaving(false)
+    }
   };
 
   return (
