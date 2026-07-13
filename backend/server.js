@@ -9,7 +9,7 @@ import syncDirectory from './routes/syncDirectory.js'
 import getDirectory from './routes/getDirectory.js'
 import bulkSync from './routes/bulkSync.js'
 import fetchFileContent from './routes/fetchFileContent.js'
-
+import FileContentCollection from './routes/FileContentCollection.js'
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGO_URI;
@@ -35,6 +35,7 @@ app.use('/api',bulkSync)
 
 app.use('/api',fetchFileContent)
 
+app.use('/api' , FileContentCollection)
 // Existing local/serverless runtime execution handlers
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`🚀 Sync Bridge Backend running on port ${PORT}`));
