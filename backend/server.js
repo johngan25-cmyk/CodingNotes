@@ -6,7 +6,6 @@ import path from 'path';
 import mongoose from 'mongoose';
 import Directory from './models/Directory.js';
 import syncDirectory from './routes/syncDirectory.js'
-import getDirectory from './routes/getDirectory.js'
 import bulkSync from './routes/bulkSync.js'
 import fetchFileContent from './routes/fetchFileContent.js'
 import FileContentCollection from './routes/FileContentCollection.js'
@@ -28,8 +27,6 @@ if (MONGODB_URI) {
 
 
 app.use('/api',syncDirectory);
-
-app.use('/api',getDirectory);
 
 app.use('/api',bulkSync)
 

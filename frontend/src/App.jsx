@@ -31,7 +31,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/directory`)
+    fetch(`${BACKEND_URL}/sync-directory`)
       .then((res) => res.json())
       .then((data) => { setTreeData(data); if (data?.fullPath) setOpenFolders({ [data.fullPath]: true }); })
       .catch((err) => triggerToast('error', err.message));

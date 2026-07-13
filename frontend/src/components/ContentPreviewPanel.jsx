@@ -1,7 +1,7 @@
 import { Folder, Loader2, FileText, Save } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-
+import { ExternalLink } from "lucide-react";
 export default function ContentPreviewPanel({
   selectedNode,
   isLoadingContent,
@@ -85,6 +85,27 @@ export default function ContentPreviewPanel({
             sandbox="allow-scripts"
             className="w-full h-full border-0 absolute inset-0"
           />
+        ) : /* 🔥 NEW CHECK: Detect if the file text is just a single standalone URL link */
+          !isEditing && /^https?:\/\/[^\s]+$/.test(markdownContent.trim()) ? (
+          <div className="flex flex-col items-center justify-center flex-1 text-slate-500 gap-4 p-6 bg-slate-50/30">
+            <div className="text-center max-w-md">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+                Resource Link File
+              </p>
+              <p className="text-sm font-semibold text-slate-700 truncate mb-4">
+                {markdownContent.trim()}
+              </p>
+              <a
+                href={markdownContent.trim()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm transition-colors cursor-pointer"
+              >
+                <span>Open Link in New Tab</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
         ) : isEditing ? (
           <textarea
             value={markdownContent}
@@ -93,8 +114,7 @@ export default function ContentPreviewPanel({
             placeholder="Start editing..."
           />
         ) : (
-          /* 📄 CODE FORMATTER VIEW ENVIRONMENT */
-          <div className="flex-1 overflow-y-auto w-full bg-white">
+          <div className="flex-1 overflow-auto font-mono text-xs bg-white">
             <SyntaxHighlighter
               language="markdown"
               style={oneLight}
@@ -106,16 +126,14 @@ export default function ContentPreviewPanel({
                 background: "#ffffff",
                 fontSize: "0.8rem",
                 lineHeight: "1.6",
+                height: "100%",
                 width: "100%",
-                whiteSpace: "pre-wrap", // 🔥 Forces internal pre block to wrap text
-                wordBreak: "break-word", // 🔥 Forces long words to split at wall
-                overflowX: "hidden", // 🔥 ABSOLUTELY KILLS HORIZONTAL SCROLL
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflowX: "hidden",
               }}
               codeTagProps={{
-                style: {
-                  whiteSpace: "pre-wrap", // 🔥 Forces internal code block to wrap text
-                  wordBreak: "break-word",
-                },
+                style: { whiteSpace: "pre-wrap", wordBreak: "break-word" },
               }}
             >
               {markdownContent}
