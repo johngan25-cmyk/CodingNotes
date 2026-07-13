@@ -106,7 +106,7 @@ export default function FileNode({
     </div>
 
       {isOpen && node.children && Array.isArray(node.children) && (
-        <div className="pl-3 border-l border-slate-200/80 ml-3.5 mt-0.5 space-y-0.5 transition-all">
+        <div className="pl-1 border-l border-slate-200/80 ml-3.5 mt-0.5 space-y-0.5 transition-all">
           {node.children.map((child, index) => (
             <FileNode
               key={
