@@ -103,40 +103,54 @@ router.post('/add-file-content', async (req, res) => {
 // DELETE endpoint to permanently wipe a document when a file is removed
 router.delete('/delete-file-content', async (req, res) => {
   try {
-    // We look for targetPath in the request body
-    const { targetPath } = req.body;
+    const { targetPaths } = req.body;
 
-    if (!targetPath) {
+    // 1. Validation Guard
+    if (!targetPaths) {
       return res.status(400).json({ 
-        error: "Missing identifier", 
-        details: "Please provide the 'targetPath' of the file to remove." 
+        error: "Missing parameters", 
+        details: "Please provide a 'targetPaths' parameter (either a single string path or an array of paths)." 
       });
     }
 
-    // Locate and delete the document matching the path
-    const deletedFile = await FileContent.findOneAndDelete({ filePath: targetPath });
+    // 2. Scenario A: Handle Multiple Deletions (Array)
+    if (Array.isArray(targetPaths)) {
+      if (targetPaths.length === 0) {
+        return res.status(400).json({ error: "Empty array provided" });
+      }
+
+      const result = await FileContent.deleteMany({ filePath: { $in: targetPaths } });
+      
+      return res.status(200).json({
+        message: "Bulk deletion executed successfully",
+        requestedCount: targetPaths.length,
+        deletedCount: result.deletedCount
+      });
+    }
+
+    // 3. Scenario B: Handle Single Deletion (String)
+    const deletedFile = await FileContent.findOneAndDelete({ filePath: targetPaths });
 
     if (!deletedFile) {
       return res.status(404).json({ 
         error: "File not found", 
-        details: `No document exists to delete at path: ${targetPath}` 
+        details: `No document matches the path: ${targetPaths}` 
       });
     }
 
     return res.status(200).json({
-      message: "File content deleted successfully from database",
-      deletedPath: targetPath
+      message: "Single file content deleted successfully",
+      deletedPath: targetPaths
     });
 
   } catch (error) {
-    console.error("Delete operation failed:", error);
+    console.error("Dynamic delete operation failed:", error);
     return res.status(500).json({ 
       error: "Database deletion failed", 
       details: error.message 
     });
   }
 });
-
 
 // PATCH endpoint to update multiple file paths at once in a single round-trip
 router.patch('/update-file-paths-bulk', async (req, res) => {
