@@ -22,6 +22,7 @@ function VisualEditorCanvas({ value, onChange }) {
   onChangeRef.current = onChange;
 
   const internalLockRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current || crepeRef.current) return;
@@ -36,8 +37,10 @@ function VisualEditorCanvas({ value, onChange }) {
     crepe
       .create()
       .then(() => {
+        initializedRef.current = true;
         crepe.on((listener) => {
           listener.markdownUpdated((_ctx, markdown, prevMarkdown) => {
+            if (!initializedRef.current) return;
             if (!crepe.editor) return;
             if (markdown === prevMarkdown) return;
             if (markdown === valueRef.current) return;
@@ -89,17 +92,22 @@ export default function ContentPreviewPanel({
   isSaving,
 }) {
   const [localContent, setLocalContent] = useState("");
-  const [hasEdited, setHasEdited] = useState(false);
 
   useEffect(() => {
+
     setLocalContent(markdownContent || "");
-    setHasEdited(false);
+
   }, [selectedNode, markdownContent]);
 
+  const normalizeMarkdown = (text) =>
+  (text || "")
+    .replace(/\r\n/g, "\n")      // Windows -> Unix
+    .replace(/[ \t]+\n/g, "\n")  // Remove trailing spaces
+    .trimEnd();                  // Ignore extra blank lines at EOF
+
   const isModified =
-    hasEdited &&
-    localContent.replace(/\r\n/g, "\n") !==
-      (markdownContent || "").replace(/\r\n/g, "\n");
+  normalizeMarkdown(localContent) !==
+  normalizeMarkdown(markdownContent);
 
   if (!selectedNode || selectedNode.isDirectory) {
     return (
@@ -112,7 +120,6 @@ export default function ContentPreviewPanel({
 
   const handlemarkdownchange = async () => {
     await onSave(localContent);
-    setHasEdited(false);
   };
 
   const isMarkdown = selectedNode.name.endsWith(".md");
@@ -154,7 +161,6 @@ export default function ContentPreviewPanel({
                   extensions={[cmMarkdown(), EditorView.lineWrapping]}
                   onChange={(val) => {
                     setLocalContent(val);
-                    setHasEdited(true);
                   }}
                   className="text-sm font-mono h-full outline-hidden"
                 />
@@ -175,7 +181,6 @@ export default function ContentPreviewPanel({
                   value={localContent}
                   onChange={(val) => {
                     setLocalContent(val);
-                    setHasEdited(true);
                   }}
                 />
               </div>
