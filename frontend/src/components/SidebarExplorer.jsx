@@ -90,32 +90,28 @@ export default function SidebarExplorer({
     }
 
     switch (actionType) {
-      case "ADD_FILE": {
-        const name = prompt("Enter new file name (e.g., notes.md, data.txt):");
-        if (!name) return;
+     case 'ADD_FILE': {
+    const name = prompt("Enter new file name:");
+    if (!name) return;
 
-        const newFilePath = `${targetFolder.fullPath}/${name}`.replace(
-          /\/+/g,
-          "/",
-        );
+    const newFilePath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, '/');
+    
+    // Keep the flag so App.jsx knows it's an unsaved text draft
+    const newFileNode = { 
+      name, 
+      fullPath: newFilePath, 
+      isDirectory: false,
+      isNewUnsaved: true 
+    };
 
-        // We append a custom 'isNewUnsaved' runtime flag to this specific state node instance.
-        // This tells App.jsx "I am a brand new empty draft, don't ping the database content API yet."
-        const newFileNode = {
-          name: name,
-          fullPath: newFilePath,
-          isDirectory: false,
-          isNewUnsaved: true,
-        };
-
-        const treeCopy = { ...localTree };
-        insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
-
-        // Push the new tree layout layout up to the database
-        syncTreeWithDatabase(treeCopy, newFileNode);
-        setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
-        break;
-      }
+    const treeCopy = { ...localTree };
+    insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
+    
+    // 🔥 FIXED: This now properly pushes the updated tree blueprint up to MongoDB!
+    syncTreeWithDatabase(treeCopy, newFileNode);
+    setOpenFolders(prev => ({ ...prev, [targetFolder.fullPath]: true }));
+    break;
+  }
 
       case "ADD_FOLDER": {
         const name = prompt("Enter new folder name:");

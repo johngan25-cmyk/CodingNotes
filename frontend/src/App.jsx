@@ -46,15 +46,14 @@ export default function App() {
     setUiState({ error: '', success: '' }); 
     setIsEditing(false);
 
-    // 🔥 THE FIX: If this node is brand new, intercept it here!
+    // 🔥 Intercept here: The structure is saved, but we skip loading text from DB
     if (selectedNode.isNewUnsaved) {
       const defaultText = `# ${selectedNode.name.replace(/\.[^/.]+$/, "")}\nStart writing here...`;
       
       setMarkdownContent(defaultText);
-      // Prime the local cache with the draft baseline
       setFileCache(prev => ({ ...prev, [selectedNode.fullPath]: defaultText }));
       
-      // Remove the flag from the reference so future normal clicks treat it like a regular file
+      // Clear the temporary flag so subsequent standard clicks load normally
       delete selectedNode.isNewUnsaved; 
       return;
     }
