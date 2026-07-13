@@ -90,28 +90,29 @@ export default function SidebarExplorer({
     }
 
     switch (actionType) {
-     case 'ADD_FILE': {
-    const name = prompt("Enter new file name:");
-    if (!name) return;
+     case "ADD_FILE": {
+  const name = prompt("Enter new file name (e.g., notes.md):");
+  if (!name) return;
 
-    const newFilePath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, '/');
-    
-    // Keep the flag so App.jsx knows it's an unsaved text draft
-    const newFileNode = { 
-      name, 
-      fullPath: newFilePath, 
-      isDirectory: false,
-      isNewUnsaved: true 
-    };
+  const newFilePath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, "/");
+  
+  // Create the file node with the temporary runtime flag
+  const newFileNode = {
+    name,
+    fullPath: newFilePath,
+    isDirectory: false,
+    isNewUnsaved: true // The flag App.jsx uses to catch and skip the /content API call
+  };
 
-    const treeCopy = { ...localTree };
-    insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
-    
-    // 🔥 FIXED: This now properly pushes the updated tree blueprint up to MongoDB!
-    syncTreeWithDatabase(treeCopy, newFileNode);
-    setOpenFolders(prev => ({ ...prev, [targetFolder.fullPath]: true }));
-    break;
-  }
+  const treeCopy = { ...localTree };
+  insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
+
+  // 🔥 MATCHED: This runs exactly like your working ADD_FOLDER block now
+  pushTreeSnapshotToServer(treeCopy); 
+  
+  setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
+  break;
+}
 
       case "ADD_FOLDER": {
         const name = prompt("Enter new folder name:");
