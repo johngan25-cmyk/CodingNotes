@@ -30,7 +30,7 @@ router.get('/sync-directory', async (req, res) => {
  * @route   POST /api/sync-directory
  * @desc    Overwrite the master tree structure with a pre-modified payload from Web or Android
  */
-/*router.post('/sync-directory', async (req, res) => {
+router.post('/sync-directory', async (req, res) => {
   try {
     const { modifiedTreeData } = req.body;
 
@@ -60,8 +60,8 @@ router.get('/sync-directory', async (req, res) => {
       details: error.message 
     });
   }
-});*/
-
+});
+/*
 router.post('/sync-directory', async (req, res) => {
   const incomingTree = req.body;
 
@@ -81,7 +81,7 @@ router.post('/sync-directory', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Database write failed', details: err.message });
   }
-})
+})*/
 
 /**
  * @route   GET /api/sync-directory/last-updated
