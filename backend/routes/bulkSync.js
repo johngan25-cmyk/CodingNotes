@@ -49,7 +49,7 @@ router.post('/bulkSync', async (req, res) => {
 /**
  * @route   GET /api/content/all-metadata
  * @desc    Fetch filePath and updatedAt for ALL documents in the collection in bulk
- *//*
+ */
 router.get('/content/all-metadata', async (req, res) => {
   try {
     // Selects only filePath and updatedAt, explicitly excluding the _id field
@@ -69,5 +69,5 @@ router.get('/content/all-metadata', async (req, res) => {
       details: error.message 
     });
   }
-});*/
+});
 export default router;
