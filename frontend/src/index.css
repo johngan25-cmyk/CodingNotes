@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Inline code */
+.milkdown :not(pre) > code {
+  background: hwb(0 99% 1%) !important; /* light gray */
+  color: #e91d1d !important;      /* modern red */
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
