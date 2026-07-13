@@ -9,3 +9,30 @@
   font-size: 0.9em;
   font-weight: 600;
 }
+
+
+
+
+
+/* Entire code block */
+.milkdown .cm-editor {
+  background: #eef6ff !important;
+  border: 1px solid #c7dcff !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+}
+
+/* Code area */
+.milkdown .cm-scroller,
+.milkdown .cm-content {
+  background: #eef6ff !important;
+}
+
+/* Line number gutter */
+.milkdown .cm-gutters {
+  background: #dbeafe !important;
+  border-right: 1px solid #c7dcff !important;
+  color: #8fa0b8 !important;
+}
+

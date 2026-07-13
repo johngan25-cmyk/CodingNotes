@@ -78,7 +78,7 @@ function VisualEditorCanvas({ value, onChange }) {
     }
   }, [value]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return <div ref={containerRef} spellCheck={false} className="h-full w-full" />;
 }
 
 // =========================================================================
