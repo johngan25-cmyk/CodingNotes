@@ -17,7 +17,7 @@ router.get('/content', async (req, res) => {
     }
 
     // Look up the exact document matching the path
-    const file = await FileContent.findOne({ filePath: path });
+    const file = await FileContent.findOne({ filePath: path }).select('filePath textData updatedAt -_id');
 
     if (!file) {
       return res.status(404).json({ 
