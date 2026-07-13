@@ -23,24 +23,20 @@ export default function SidebarExplorer({
   }, [activeDisplayTree]);
 
   // Unified fetch pipeline to push the modified tree snapshot to the shared endpoint
-  const pushTreeSnapshotToServer = (
-    updatedTreeObject,
-    optionalNewSelectNode = null,
-  ) => {
+const pushTreeSnapshotToServer = (updatedTreeObject, optionalNewSelectNode = null) => {
     fetch(`${BACKEND_URL}/sync-directory`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ modifiedTreeData: updatedTreeObject }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modifiedTreeData: updatedTreeObject })
     })
-      .then((res) => {
-        if (!res.ok)
-          throw new Error("Failed to sync tree changes to the server.");
-        setLocalTree(updatedTreeObject);
-        if (optionalNewSelectNode !== null) {
-          onSelect(optionalNewSelectNode);
-        }
-      })
-      .catch((err) => alert(err.message));
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to sync tree changes to the server.");
+      setLocalTree(updatedTreeObject);
+      if (optionalNewSelectNode !== null) {
+        onSelect(optionalNewSelectNode);
+      }
+    })
+    .catch(err => alert(err.message));
   };
 
   const insertNodeIntoTree = (node, parentPath, newNode) => {
