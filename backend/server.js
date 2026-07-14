@@ -10,7 +10,8 @@ import bulkSync from './routes/bulkSync.js'
 import fetchFileContent from './routes/fetchFileContent.js'
 import FileContentCollection from './routes/FileContentCollection.js'
 import getUpdatedAt from './routes/getUpdatedAt.js'
-
+import LogApi from './routes/Log.js'
+import apiLogger from './middlewares/logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +28,7 @@ if (MONGODB_URI) {
 } else {
   console.warn('⚠️ Warning: MONGODB_URI environment variable is missing.');
 }
-
+app.use(apiLogger);
 
 app.use('/api',syncDirectory);
 
@@ -38,6 +39,9 @@ app.use('/api',fetchFileContent)
 app.use('/api',getUpdatedAt);
 
 app.use('/api' , FileContentCollection)
+
+app.use( '/api', LogApi)
+
 // Existing local/serverless runtime execution handlers
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => console.log(`🚀 Sync Bridge Backend running on port ${PORT}`));
