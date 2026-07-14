@@ -30,7 +30,7 @@ export function useFileLoader({
     }
     
     //if just created no need to fetch from db..show default
-    if(selectedNode.isNewUnsaved==false){
+    if(selectedNode.isNewUnsaved==true){
       setMarkdownContent(defaultText);
       return;
     }
