@@ -16,13 +16,12 @@ export function useFileLoader({
   setUiState,
   fetchFileFromDatabase
 }) {
+  const defaultText = `# hello`;
   useEffect(() => {
     if (!selectedNode || selectedNode.isDirectory || selectedNode.name === "root") {
       setMarkdownContent(""); //setting md content
       return;
     }
-
-    
 
     // Serving data instantly from memory cache if present
     if (fileCache[selectedNode.fullPath] !== undefined) {
@@ -30,7 +29,14 @@ export function useFileLoader({
       return;
     }
     
-    // Fallback to async server dispatch
+    //if just created no need to fetch from db..show default
+    if(selectedNode.isNewUnsaved==false){
+      setMarkdownContent(defaultText);
+      return;
+    }
+
+    //try to get it from db
     fetchFileFromDatabase(false);
+    
   }, [selectedNode, fileCache, fetchFileFromDatabase, setMarkdownContent, setUiState, setFileCache]);
 }

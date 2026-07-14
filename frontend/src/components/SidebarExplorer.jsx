@@ -53,7 +53,7 @@ export default function SidebarExplorer({
 
         // 2. If it was a new file creation action, auto-provision its database text entry immediately
         if (actionType === "ADD_FILE" && result.targetSelection) {
-          const defaultText = `# ${result.targetSelection.name.replace(/\.[^/.]+$/, "")}`;
+          const defaultText = `# hello`;
 
           await api.post("/add-file-content", {
             filePath: result.targetSelection.fullPath,
