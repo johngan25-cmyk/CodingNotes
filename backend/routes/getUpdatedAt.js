@@ -51,7 +51,6 @@ router.get('/file/last-updated', async (req, res) => {
     // .select('updatedAt') ensures MongoDB does not load or transmit the actual textData field
     // ⚠️ Change 'FileContent' to match your exact Mongoose model name if it's different!
     const fileRecord = await FileContent.findOne({ filePath: filePath }).select('updatedAt');
-    console.log(fileRecord,filePath);
     
     if (!fileRecord) {
       return res.status(404).json({ 

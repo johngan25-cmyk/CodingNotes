@@ -145,7 +145,7 @@ const LogDashboard = () => {
 
                           {/* Endpoint */}
                           <div className="grow px-4 font-mono text-xs text-slate-600 break-all">
-                            {log.endpoint}
+                            {log.endpoint ? decodeURIComponent(log.endpoint) : ""}
                           </div>
 
                           {/* Status */}
@@ -180,8 +180,21 @@ const LogDashboard = () => {
                             <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200 w-full h-auto">
                               <JsonView
                                 src={{
-                                  requestParams: log.requestParams,
-                                  requestQuery: log.requestQuery,
+                                  // Decodes nested query strings/params if they exist, otherwise maps the objects cleanly
+                                  requestParams: log.requestParams
+                                    ? JSON.parse(
+                                        decodeURIComponent(
+                                          JSON.stringify(log.requestParams),
+                                        ),
+                                      )
+                                    : null,
+                                  requestQuery: log.requestQuery
+                                    ? JSON.parse(
+                                        decodeURIComponent(
+                                          JSON.stringify(log.requestQuery),
+                                        ),
+                                      )
+                                    : null,
                                   requestBody: log.requestBody,
                                   response: log.response,
                                 }}
