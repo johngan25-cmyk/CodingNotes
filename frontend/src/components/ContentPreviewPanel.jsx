@@ -1,138 +1,57 @@
-import React, { useState, useEffect, useRef } from "react";
-import CodeMirror from "@uiw/react-codemirror";
-import { markdown as cmMarkdown } from "@codemirror/lang-markdown";
+import React, { useState, useEffect } from "react";
+import CodeMirror, { EditorView } from "@uiw/react-codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorView } from "@uiw/react-codemirror";
-// Unified Crepe engine + styling layers
-import { Crepe } from "@milkdown/crepe";
-import { replaceAll, getMarkdown } from "@milkdown/kit/utils";
-import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/frame.css";
-import { Group, Panel, Separator } from "react-resizable-panels";
-// =========================================================================
-// 🌐 VISUAL WYSIWYG PREVIEW (Crepe)
-// =========================================================================
-function VisualEditorCanvas({ value, onChange }) {
-  const containerRef = useRef(null);
-  const crepeRef = useRef(null);
+import MarkdownWorkspace from "./MarkdownWorkspace";
+import HtmlWorkspace from "./HtmlWorkspace";
 
-  const valueRef = useRef(value);
-  const onChangeRef = useRef(onChange);
-  valueRef.current = value;
-  onChangeRef.current = onChange;
-
-  const internalLockRef = useRef(false);
-  const initializedRef = useRef(false);
-
-  useEffect(() => {
-    if (!containerRef.current || crepeRef.current) return;
-
-    const crepe = new Crepe({
-      root: containerRef.current,
-      defaultValue: valueRef.current,
-    });
-
-    crepeRef.current = crepe;
-
-    crepe
-      .create()
-      .then(() => {
-        initializedRef.current = true;
-        crepe.on((listener) => {
-          listener.markdownUpdated((_ctx, markdown, prevMarkdown) => {
-            if (!initializedRef.current) return;
-            if (!crepe.editor) return;
-            if (markdown === prevMarkdown) return;
-            if (markdown === valueRef.current) return;
-            if (internalLockRef.current) return;
-
-            onChangeRef.current(markdown);
-          });
-        });
-      })
-      .catch((err) => console.error("Failed to initialize Crepe:", err));
-
-    return () => {
-      if (crepeRef.current) {
-        try {
-          crepeRef.current.destroy();
-        } catch (e) {}
-        crepeRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const crepe = crepeRef.current;
-    if (!crepe || !crepe.editor) return;
-
-    try {
-      const currentMarkdown = crepe.editor.action(getMarkdown());
-      if (currentMarkdown !== value) {
-        internalLockRef.current = true;
-        crepe.editor.action(replaceAll(value));
-        internalLockRef.current = false;
-      }
-    } catch (e) {
-      internalLockRef.current = false;
-    }
-  }, [value]);
-
-  return <div ref={containerRef} spellCheck={false} className="h-full w-full" />;
-}
-
-// =========================================================================
-// 🚀 MAIN WORKSPACE PREVIEW PANEL
-// =========================================================================
 export default function ContentPreviewPanel({
   selectedNode,
   markdownContent,
-  setMarkdownContent,
   onSave,
   isSaving,
 }) {
   const [localContent, setLocalContent] = useState("");
 
   useEffect(() => {
-
     setLocalContent(markdownContent || "");
-
   }, [selectedNode, markdownContent]);
 
+  // Normalizes line breaks and whitespace signatures
   const normalizeMarkdown = (text) =>
-  (text || "")
-    .replace(/\r\n/g, "\n")      // Windows -> Unix
-    .replace(/[ \t]+\n/g, "\n")  // Remove trailing spaces
-    .trimEnd();                  // Ignore extra blank lines at EOF
+    (text || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/[ \t]+\n/g, "\n")
+      .trimEnd();
 
   const isModified =
-  normalizeMarkdown(localContent) !==
-  normalizeMarkdown(markdownContent);
+    normalizeMarkdown(localContent) !== normalizeMarkdown(markdownContent);
 
+  // Empty State Fallback
   if (!selectedNode || selectedNode.isDirectory) {
     return (
       <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl flex items-center justify-center p-8 text-slate-400 font-medium text-sm shadow-xs select-none">
-        Select a note file from the explorer sidebar to begin tracking content
-        updates.
+        Select a note file from the explorer sidebar to begin tracking content updates.
       </div>
     );
   }
 
-  const handlemarkdownchange = async () => {
-    await onSave(localContent);
-  };
-
   const isMarkdown = selectedNode.name.endsWith(".md");
   const isHtml = selectedNode.name.endsWith(".html");
+  const isTxt = selectedNode.name.endsWith(".txt");
+
+  // 🚀 Helper to test if text data is strictly a standalone URL link string
+  const urlRegex = /^(https?:\/\/[^\s]+)$/i;
+  const isPureLink = isTxt && urlRegex.test(localContent.trim());
 
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-xs">
+      
       {/* 🧭 HEADER ACTION CONTROL STRIP */}
       <div className="h-12 bg-slate-50 border-b border-slate-200 px-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          {isModified && (
+          {isModified && !isPureLink && (
             <button
-              onClick={handlemarkdownchange}
+              onClick={() => onSave(localContent)}
               disabled={isSaving}
               className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium text-xs px-3 py-1.5 rounded-md cursor-pointer transition-colors shadow-2xs"
             >
@@ -144,62 +63,35 @@ export default function ContentPreviewPanel({
 
       {/* DUAL WORKSPACE ENGINES SWITCH ROUTER */}
       <div className="flex-1 min-h-0 w-full flex overflow-hidden">
-        {isMarkdown ? (
-          /* CASE 1: 🛠️ MARKDOWN DRAGGABLE RESIZABLE PANELS WORKSPACE */
-          <Group direction="horizontal" className="w-full h-full">
-            {/* LEFT PANEL: CodeMirror Advanced Source Editor */}
-            <Panel
-              defaultSize={50}
-              minSize={20}
-              className="h-full flex flex-col p-2 overflow-hidden bg-slate-50/10"
-            >
-              <div className="w-full flex-1 min-h-0 overflow-y-auto rounded-lg border border-slate-200/80 shadow-2xs bg-[#282c34]">
-                <CodeMirror
-                  value={localContent}
-                  height="100%"
-                  theme={oneDark}
-                  extensions={[cmMarkdown(), EditorView.lineWrapping]}
-                  onChange={(val) => {
-                    setLocalContent(val);
-                  }}
-                  className="text-sm font-mono h-full outline-hidden"
-                />
-              </div>
-            </Panel>
-
-            {/* 🔥 THE ACTIVE RESIZABLE SLIDING HANDLE EDGE */}
-            <Separator className="w-1.5 bg-slate-200/60 hover:bg-slate-400 active:bg-slate-500 cursor-col-resize transition-colors duration-150 relative z-10 mx-0.5 rounded-full" />
-
-            {/* RIGHT PANEL: Crepe Rich-Text Rendering Canvas */}
-            <Panel
-              defaultSize={50}
-              minSize={20}
-              className="h-full flex flex-col p-2 overflow-hidden bg-slate-50/20"
-            >
-              <div className="w-full flex-1 min-h-0 overflow-y-auto bg-white rounded-lg p-2 border border-slate-200/80 shadow-2xs max-w-none milkdown-crepe-panel">
-                <VisualEditorCanvas
-                  value={localContent}
-                  onChange={(val) => {
-                    setLocalContent(val);
-                  }}
-                />
-              </div>
-            </Panel>
-          </Group>
-        ) : isHtml ? (
-          /* CASE 2: HTML FULL PREVIEW DISPLAY RENDER (Full Layout Fill) */
-          <div className="w-full h-full p-2 bg-slate-50/20 flex flex-col overflow-hidden">
-            <div className="w-full flex-1 min-h-0 bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
-              <iframe
-                srcDoc={localContent}
-                title="HTML Canvas Workspace Preview Rendering Sandbox"
-                sandbox="allow-scripts"
-                className="w-full h-full border-0 bg-white"
-              />
+        {isPureLink ? (
+          /* 🚀 CASE 0: PURE LINK TXT FILE VIEWPORT */
+          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/30 p-8 text-center animate-fade-in">
+            <div className="p-4 bg-blue-50 text-blue-600 rounded-full mb-3 shadow-2xs">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
             </div>
+            <h3 className="text-sm font-semibold text-slate-800 mb-1">Shortcut Link Detected</h3>
+            <p className="text-xs text-slate-500 max-w-xs break-all mb-4  underline bg-slate-100/80 px-2 py-1 rounded">
+              {localContent.trim()}
+            </p>
+            <a
+              href={localContent.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-4 py-2 rounded-lg cursor-pointer shadow-xs transition-all hover:-translate-y-0.5"
+            >
+              <span>Open Link in New Tab</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+            </a>
           </div>
+        ) : isMarkdown ? (
+          <MarkdownWorkspace 
+            localContent={localContent} 
+            setLocalContent={setLocalContent} 
+          />
+        ) : isHtml ? (
+          <HtmlWorkspace content={localContent} />
         ) : (
-          /* CASE 3: PLAIN TEXT FALLBACK CODE EDITOR PANE */
+          /* Plain-Text Fallback Editor View (Handles ordinary .txt configurations) */
           <div className="w-full h-full p-3 bg-slate-50/10">
             <CodeMirror
               value={localContent}

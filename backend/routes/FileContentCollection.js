@@ -127,7 +127,8 @@ router.delete('/delete-file-content', async (req, res) => {
         deletedCount: result.deletedCount
       });
     }
-
+    console.log(targetPaths);
+    
     // 3. Scenario B: Handle Single Deletion (String)
     const deletedFile = await FileContent.findOneAndDelete({ filePath: targetPaths });
 

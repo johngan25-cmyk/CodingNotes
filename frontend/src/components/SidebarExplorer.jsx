@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import React from "react";
 import { ArrowLeft } from "lucide-react";
 import FileNode from "./FileNode";
 import TreeActionsToolbar from "./TreeActionsToolbar";
-
+import { useTreeSync } from "../hooks/useTreeSync";
+import { executeTreeAction } from "../utils/treeOperations";
+import api from "../services/axiosInstance.js";
 export default function SidebarExplorer({
   activeDisplayTree,
   selectedNode,
@@ -12,146 +14,55 @@ export default function SidebarExplorer({
   focusedNode,
   onFocus,
 }) {
-  const [localTree, setLocalTree] = useState(null);
-  const BACKEND_URL =
-    import.meta.env.VITE_BACKEND_URL || "http://localhost:3000/api";
+  const { localTree, pushTreeSnapshotToServer } = useTreeSync(
+    activeDisplayTree,
+    onSelect,
+  );
 
-  useEffect(() => {
-    if (activeDisplayTree) {
-      setLocalTree(JSON.parse(JSON.stringify(activeDisplayTree)));
-    }
-  }, [activeDisplayTree]);
+  const handleToolbarAction = async (actionType) => {
+    const result = executeTreeAction({
+      actionType,
+      localTree,
+      selectedNode,
+      setOpenFolders,
+    });
 
-  // Unified fetch pipeline to push the modified tree snapshot to the shared endpoint
-const pushTreeSnapshotToServer = (updatedTreeObject, optionalNewSelectNode = null) => {
-    fetch(`${BACKEND_URL}/sync-directory`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ modifiedTreeData: updatedTreeObject })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Failed to sync tree changes to the server.");
-      setLocalTree(updatedTreeObject);
-      if (optionalNewSelectNode !== null) {
-        onSelect(optionalNewSelectNode);
+    // If the action returned a modified tree state object, commit it to the backend database
+    if (result?.updatedTree) {
+      const nextSelection =
+        result.targetSelection !== undefined
+          ? result.targetSelection
+          : result.shouldClearSelection
+            ? null
+            : undefined;
+      if (
+        Array.isArray(result.deletedFilePathsArray) &&
+        result.deletedFilePathsArray.length > 0
+      ) {
+        api
+          .delete("/delete-file-content", {
+            data: { targetPaths: result.deletedFilePathsArray },
+          })
+          .catch((err) =>
+            console.error("Content cleanup failed:", err.message),
+          );
       }
-    })
-    .catch(err => alert(err.message));
-  };
+      try {
+        // 1. Sync the filesystem tree layout first
+        await pushTreeSnapshotToServer(result.updatedTree, nextSelection);
 
-  const insertNodeIntoTree = (node, parentPath, newNode) => {
-    if (node.fullPath === parentPath) {
-      if (!node.children) node.children = [];
-      node.children.push(newNode);
-      return true;
-    }
-    if (node.children) {
-      for (let child of node.children) {
-        if (insertNodeIntoTree(child, parentPath, newNode)) return true;
+        // 2. If it was a new file creation action, auto-provision its database text entry immediately
+        if (actionType === "ADD_FILE" && result.targetSelection) {
+          const defaultText = `# ${result.targetSelection.name.replace(/\.[^/.]+$/, "")}`;
+
+          await api.post("/add-file-content", {
+            filePath: result.targetSelection.fullPath,
+            textData: defaultText,
+          });
+        }
+      } catch (err) {
+        console.error("Auto-initialization chain failed:", err.message);
       }
-    }
-    return false;
-  };
-
-  const removeNodeFromTree = (node, targetPath) => {
-    if (node.children) {
-      const index = node.children.findIndex(
-        (child) => child.fullPath === targetPath,
-      );
-      if (index !== -1) {
-        node.children.splice(index, 1);
-        return true;
-      }
-      for (let child of node.children) {
-        if (removeNodeFromTree(child, targetPath)) return true;
-      }
-    }
-    return false;
-  };
-
-  const handleToolbarAction = (actionType) => {
-    if (!localTree) return;
-
-    let targetFolder = selectedNode;
-    if (!targetFolder || !targetFolder.isDirectory) {
-      targetFolder =
-        selectedNode && !selectedNode.isDirectory
-          ? {
-              fullPath: selectedNode.fullPath.substring(
-                0,
-                selectedNode.fullPath.lastIndexOf("/"),
-              ),
-            }
-          : localTree;
-    }
-
-    switch (actionType) {
-     case "ADD_FILE": {
-  const name = prompt("Enter new file name (e.g., notes.md):");
-  if (!name) return;
-
-  const newFilePath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, "/");
-  
-  // Create the file node with the temporary runtime flag
-  const newFileNode = {
-    name,
-    fullPath: newFilePath,
-    isDirectory: false,
-    isNewUnsaved: true // The flag App.jsx uses to catch and skip the /content API call
-  };
-
-  const treeCopy = { ...localTree };
-  insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
-
-  // 🔥 MATCHED: This runs exactly like your working ADD_FOLDER block now
-  pushTreeSnapshotToServer(treeCopy); 
-  
-  setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
-  break;
-}
-
-      case "ADD_FOLDER": {
-        const name = prompt("Enter new folder name:");
-        if (!name) return;
-
-        const newFolderPath = `${targetFolder.fullPath}/${name}`.replace(
-          /\/+/g,
-          "/",
-        );
-        const newFolderNode = {
-          name,
-          fullPath: newFolderPath,
-          isDirectory: true,
-          children: [],
-        };
-
-        const treeCopy = { ...localTree };
-        insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFolderNode);
-
-        pushTreeSnapshotToServer(treeCopy);
-        setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
-        break;
-      }
-
-      case "DELETE": {
-        if (!selectedNode || selectedNode.name === "root") return;
-        if (!window.confirm(`Permanently delete "${selectedNode.name}"?`))
-          return;
-
-        const treeCopy = { ...localTree };
-        removeNodeFromTree(treeCopy, selectedNode.fullPath);
-
-        pushTreeSnapshotToServer(treeCopy, null);
-        break;
-      }
-
-      case "COLLAPSE_ALL":
-        setOpenFolders(
-          localTree.fullPath ? { [localTree.fullPath]: true } : {},
-        );
-        break;
-      default:
-        break;
     }
   };
 

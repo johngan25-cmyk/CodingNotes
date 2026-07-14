@@ -26,6 +26,23 @@ router.get('/sync-directory', async (req, res) => {
   }
 });
 
+
+
+// 🚀 1.  recursive helper to sanitize
+const sanitizeBackendTree = (node) => {
+  if (!node) return;
+  
+  // Explicitly strip away the frontend runtime flag if present
+  if ('isNewUnsaved' in node) {
+    delete node.isNewUnsaved;
+  }
+  
+  // Recurse down into child directories
+  if (Array.isArray(node.children)) {
+    node.children.forEach(sanitizeBackendTree);
+  }
+};
+
 /**
  * @route   POST /api/sync-directory
  * @desc    Overwrite the master tree structure with a pre-modified payload from Web or Android
@@ -38,6 +55,7 @@ router.post('/sync-directory', async (req, res) => {
       return res.status(400).json({ error: "Missing modifiedTreeData payload." });
     }
 
+    sanitizeBackendTree(modifiedTreeData); 
     // Atomic update using $set to guarantee Mongoose tracks the deeply nested Mixed object alterations
     const result = await DirectoryTree.findOneAndUpdate(
       { key: "master_tree" },
