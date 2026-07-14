@@ -87,6 +87,7 @@ router.post('/add-file-content', async (req, res) => {
 
     return res.status(201).json({
       message: "File content document initialized successfully",
+      data: savedFile
     });
 
   } catch (error) {
