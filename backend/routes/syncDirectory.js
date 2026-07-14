@@ -61,7 +61,7 @@ router.post('/sync-directory', async (req, res) => {
       { key: "master_tree" },
       { $set: { treeData: modifiedTreeData } },
       { 
-        new: true,          
+        returnDocument: 'after',          
         upsert: true,       
         runValidators: true 
       }

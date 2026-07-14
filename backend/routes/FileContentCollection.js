@@ -28,7 +28,7 @@ router.patch('/update-file-content', async (req, res) => {
     const updatedFile = await FileContent.findOneAndUpdate(
       { filePath: currentPath },
       { $set: updates },
-      { new: true, runValidators: true } // Returns the modified document and runs schema validations
+      { returnDocument: 'after', runValidators: true } // Returns the modified document and runs schema validations
     );
 
     // 3. Check if document existed
@@ -83,7 +83,7 @@ router.post('/add-file-content', async (req, res) => {
           textData: textData !== undefined ? textData : "" 
         } 
       },
-      { new: true, upsert: true, runValidators: true }
+      { returnDocument: 'after', upsert: true, runValidators: true }
     );
 
     return res.status(201).json({
