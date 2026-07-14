@@ -41,6 +41,7 @@ router.patch('/update-file-content', async (req, res) => {
 
     return res.status(200).json({
       message: "File updated successfully",
+      data: updatedFile
     });
 
   } catch (error) {
