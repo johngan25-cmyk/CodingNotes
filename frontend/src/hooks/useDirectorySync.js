@@ -7,16 +7,10 @@
 
 
 import { useEffect } from "react";
-import api from "../services/axiosInstance.js";
 
-export function useDirectorySync(setTreeData, setOpenFolders, triggerToast) {
+export function useDirectorySync(syncDirectoryData) {
   useEffect(() => {
-    api.get("/sync-directory")
-      .then((response) => {
-        const data = response.data;
-        setTreeData(data);
-        if (data?.fullPath) setOpenFolders({ [data.fullPath]: true });
-      })
-      .catch((err) => triggerToast("error", err.response?.data?.message || err.message));
-  }, [setTreeData, setOpenFolders, triggerToast]);
+    // Bootstrap the app by pulling the initial directory layout
+    syncDirectoryData(false);
+  }, [syncDirectoryData]);
 }

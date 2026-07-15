@@ -5,6 +5,21 @@
   outside of the React render loop.
 */
 
+
+/**
+ * Recursively checks if a path exists within the tree structure
+ */
+export const verifyPathExists = (node, targetPath) => {
+  if (!node) return false;
+  if (node.fullPath === targetPath) return true;
+  if (node.children) {
+    for (let child of node.children) {
+      if (verifyPathExists(child, targetPath)) return true;
+    }
+  }
+  return false;
+};
+
 // 🚀 Add this helper to recursively collect all file paths inside a node
 const extractAllFilePaths = (node, pathAccumulator = []) => {
   if (!node) return pathAccumulator;

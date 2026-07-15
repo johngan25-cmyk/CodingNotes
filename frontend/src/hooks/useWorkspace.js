@@ -4,13 +4,22 @@
   memory lookups, loading spinners, and houses patch mutations to persist local edits.
   Consumes sub-hooks to offload declarative effects, presenting a clean api interface to App.jsx.
 */
-
-
-import { useState, useCallback, useRef} from "react";
-import axios from "axios";
+import { useState, useCallback, useRef } from "react";
 import { useDirectorySync } from "./useDirectorySync";
 import { useFileLoader } from "./useFileLoader";
 import api from "../services/axiosInstance.js";
+
+// Helper to check if a folder still exists in the incoming tree
+const verifyPathExists = (node, targetPath) => {
+  if (!node) return false;
+  if (node.fullPath === targetPath) return true;
+  if (node.children) {
+    for (let child of node.children) {
+      if (verifyPathExists(child, targetPath)) return true;
+    }
+  }
+  return false;
+};
 
 export function useWorkspace() {
   const [treeData, setTreeData] = useState(null);
@@ -24,27 +33,21 @@ export function useWorkspace() {
   const [fileCache, setFileCache] = useState({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // 🛡️ A persistent mutable reference to keep track of the active timer
+  // Persistent Toast Ref
   const toastTimerRef = useRef(null);
   const triggerToast = useCallback((type, message) => {
-    // 1. Immediately kill any existing active countdown timer to prevent collisions
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-    // 2. Safely apply the new message state
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setUiState({
       error: type === "error" ? message : "",
       success: type === "success" ? message : "",
     });
-    // 3. Start a fresh, un-interrupted countdown (5 seconds is standard readability)
     toastTimerRef.current = setTimeout(() => {
       setUiState({ error: "", success: "" });
       toastTimerRef.current = null;
     }, 3000);
   }, []);
 
-
-  //fetching file from database
+  // 1. Fetching File Content
   const fetchFileFromDatabase = useCallback(async (isManualRefresh = false) => {
     if (!selectedNode?.fullPath) return;
     setIsLoadingContent(true);
@@ -61,8 +64,44 @@ export function useWorkspace() {
     }
   }, [selectedNode, triggerToast]);
 
-  // 🚀 Hook Registration: Side-effects run out of sight!
-  useDirectorySync(setTreeData, setOpenFolders, triggerToast);
+  // 2. Smart Directory Syncing (Shared between Initial Load and Manual Refresh)
+  const syncDirectoryData = useCallback(async (isManualRefresh = false) => {
+    try {
+      const response = await api.get("/sync-directory");
+      const freshTreeData = response.data;
+      
+      setTreeData(freshTreeData);
+
+      // Evaluate states to preserve folder layout
+      setOpenFolders((prevOpenFolders) => {
+        const nextOpenFolders = {};
+        
+        Object.keys(prevOpenFolders).forEach((path) => {
+          if (prevOpenFolders[path]) {
+            // Keep it open if it exists, drop it if it was deleted
+            if (verifyPathExists(freshTreeData, path)) {
+              nextOpenFolders[path] = true;
+            }
+          }
+        });
+
+        // Ensure the root folder stays expanded on boot
+        if (freshTreeData?.fullPath) {
+          nextOpenFolders[freshTreeData.fullPath] = true;
+        }
+
+        return nextOpenFolders;
+      });
+
+      if (isManualRefresh) triggerToast("success", "Directory structure updated!");
+    } catch (err) {
+      triggerToast("error", err.response?.data?.message || "Failed to sync directory");
+      throw err;
+    }
+  }, [triggerToast]);
+
+  // 🚀 Hook Registration: Bootstraps the app seamlessly via the new function!
+  useDirectorySync(syncDirectoryData);
   
   useFileLoader({
     selectedNode,
@@ -73,16 +112,29 @@ export function useWorkspace() {
     fetchFileFromDatabase
   });
 
+  // 3. Central Refresh Button Handler
+  const handleManualRefresh = useCallback(async () => {
+    setIsLoadingContent(true);
+    try {
+      await Promise.all([
+        fetchFileFromDatabase(false),
+        syncDirectoryData(false)
+      ]);
+      triggerToast("success", "Workspace synchronized successfully!");
+    } catch (err) {
+      // Handled by sub-methods
+    } finally {
+      setIsLoadingContent(false);
+    }
+  }, [fetchFileFromDatabase, syncDirectoryData, triggerToast]);
+
   const handleSaveChanges = async (content) => {
     setIsSaving(true);
-    
-
     try {
       await api.patch("/update-file-content", {
-       currentPath: selectedNode.fullPath,
-       updates: { textData: content }
-     });
-
+        currentPath: selectedNode.fullPath,
+        updates: { textData: content }
+      });
       setFileCache((prev) => ({ ...prev, [selectedNode.fullPath]: content }));
       setMarkdownContent(content);
       triggerToast("success", "Changes saved safely!");
@@ -110,5 +162,6 @@ export function useWorkspace() {
     setIsSidebarOpen,
     fetchFileFromDatabase,
     handleSaveChanges,
+    handleManualRefresh, // Expose this clean pipeline out to App.jsx!
   };
 }

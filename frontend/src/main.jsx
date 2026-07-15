@@ -12,7 +12,7 @@ createRoot(document.getElementById('root')).render(
         {/* 1. Main Project Root (renders your existing App component) */}
         <Route path="/" element={<App />} />
         {/* 2. Isolated Logs Route */}
-        <Route path="/logs" element={<LogDashboard />} />
+        {/* <Route path="/logs" element={<LogDashboard />} /> */}
         {/* 3. Catch-all: Redirect any other unmapped route to the homepage */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
