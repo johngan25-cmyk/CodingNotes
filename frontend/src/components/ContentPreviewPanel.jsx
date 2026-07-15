@@ -9,6 +9,7 @@ export default function ContentPreviewPanel({
   markdownContent,
   onSave,
   isSaving,
+  onUpdateLink
 }) {
   const [localContent, setLocalContent] = useState("");
 
@@ -37,12 +38,12 @@ export default function ContentPreviewPanel({
 
   const isMarkdown = selectedNode.name.endsWith(".md");
   const isHtml = selectedNode.name.endsWith(".html");
-  const isTxt = selectedNode.name.endsWith(".txt");
 
   // 🚀 Helper to test if text data is strictly a standalone URL link string
-  const urlRegex = /^(https?:\/\/[^\s]+)$/i;
-  const isPureLink = isTxt && urlRegex.test(localContent.trim());
-
+  // Clean, direct check using our new node property
+  const isPureLink = selectedNode?.isLink;
+  const displayUrl = selectedNode?.destinationUrl || "";
+const safeHref = displayUrl.match(/^https?:\/\//i) ? displayUrl : `https://${displayUrl}`;
   return (
     <div className="flex-1 min-h-0 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-xs">
       
@@ -71,17 +72,38 @@ export default function ContentPreviewPanel({
             </div>
             <h3 className="text-sm font-semibold text-slate-800 mb-1">Shortcut Link Detected</h3>
             <p className="text-xs text-slate-500 max-w-xs break-all mb-4  underline bg-slate-100/80 px-2 py-1 rounded">
-              {localContent.trim()}
+              {displayUrl.trim()}
             </p>
-            <a
-              href={localContent.trim()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-4 py-2 rounded-lg cursor-pointer shadow-xs transition-all hover:-translate-y-0.5"
-            >
-              <span>Open Link in New Tab</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
-            </a>
+            
+            {/* 🔥 ADD THIS WRAPPER DIV so they sit side-by-side */}
+            <div className="flex items-center justify-center gap-3">
+              <a
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-4 py-2 rounded-lg cursor-pointer shadow-xs transition-all hover:-translate-y-0.5"
+              >
+                <span>Open Link in New Tab</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+              </a>
+
+              {/* 🔥 NEW EDIT BUTTON */}
+              <button
+                onClick={() => {
+                  // Prompt the user, pre-filling their current URL!
+                  const newUrl = prompt("Update Destination URL:", displayUrl);
+                  
+                  // Only fire the network request if they typed something new
+                  if (newUrl && newUrl !== displayUrl && onUpdateLink) {
+                    onUpdateLink(newUrl);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-xs px-4 py-2 rounded-lg cursor-pointer shadow-xs transition-all hover:-translate-y-0.5"
+              >
+                <span>Edit Link</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+              </button>
+            </div> {/* <-- Close the wrapper div here */}
           </div>
         ) : isMarkdown ? (
           <MarkdownWorkspace 

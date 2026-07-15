@@ -5,7 +5,6 @@
   outside of the React render loop.
 */
 
-
 /**
  * Recursively checks if a path exists within the tree structure
  */
@@ -21,14 +20,20 @@ export const verifyPathExists = (node, targetPath) => {
 };
 
 // 🚀 Add this helper to recursively collect all file paths inside a node
-const extractAllFilePaths = (node, pathAccumulator = []) => {
-  if (!node) return pathAccumulator;
+const extractAllResources = (node, accumulator = { files: [], links: [] }) => {
+  if (!node) return accumulator;
+  
   if (!node.isDirectory) {
-    pathAccumulator.push(node.fullPath);
+    if (node.isLink) {
+      accumulator.links.push(node.fullPath);
+    } else {
+      accumulator.files.push(node.fullPath);
+    }
   } else if (Array.isArray(node.children)) {
-    node.children.forEach(child => extractAllFilePaths(child, pathAccumulator));
+    node.children.forEach((child) => extractAllResources(child, accumulator));
   }
-  return pathAccumulator;
+  
+  return accumulator;
 };
 
 /**
@@ -53,7 +58,9 @@ export const insertNodeIntoTree = (node, parentPath, newNode) => {
  */
 export const removeNodeFromTree = (node, targetPath) => {
   if (node.children) {
-    const index = node.children.findIndex((child) => child.fullPath === targetPath);
+    const index = node.children.findIndex(
+      (child) => child.fullPath === targetPath,
+    );
     if (index !== -1) {
       node.children.splice(index, 1);
       return true;
@@ -74,7 +81,7 @@ export const resolveTargetFolder = (selectedNode, localTree) => {
       ? {
           fullPath: selectedNode.fullPath.substring(
             0,
-            selectedNode.fullPath.lastIndexOf("/")
+            selectedNode.fullPath.lastIndexOf("/"),
           ),
         }
       : localTree;
@@ -85,7 +92,12 @@ export const resolveTargetFolder = (selectedNode, localTree) => {
 /**
  * 🔥 Central Command Handler for Core Directory Tree Mutations
  */
-export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpenFolders }) => {
+export const executeTreeAction = ({
+  actionType,
+  localTree,
+  selectedNode,
+  setOpenFolders,
+}) => {
   if (!localTree) return null;
 
   const targetFolder = resolveTargetFolder(selectedNode, localTree);
@@ -96,7 +108,10 @@ export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpen
       const name = prompt("Enter new file name (e.g., notes.md):");
       if (!name) return null;
 
-      const newFilePath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, "/");
+      const newFilePath = `${targetFolder.fullPath}/${name}`.replace(
+        /\/+/g,
+        "/",
+      );
       const newFileNode = {
         name,
         fullPath: newFilePath,
@@ -107,7 +122,6 @@ export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpen
       insertNodeIntoTree(treeCopy, targetFolder.fullPath, newFileNode);
       setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
 
-
       return { updatedTree: treeCopy, targetSelection: newFileNode };
     }
 
@@ -115,7 +129,10 @@ export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpen
       const name = prompt("Enter new folder name:");
       if (!name) return null;
 
-      const newFolderPath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, "/");
+      const newFolderPath = `${targetFolder.fullPath}/${name}`.replace(
+        /\/+/g,
+        "/",
+      );
       const newFolderNode = {
         name,
         fullPath: newFolderPath,
@@ -130,10 +147,15 @@ export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpen
 
     case "DELETE": {
       if (!selectedNode || selectedNode.name === "root") return null;
-      if (!window.confirm(`Permanently delete "${selectedNode.name}" and all its contents?`)) return null;
+      if (
+        !window.confirm(
+          `Permanently delete "${selectedNode.name}" and all its contents?`,
+        )
+      )
+        return null;
 
       const treeCopy = JSON.parse(JSON.stringify(localTree));
-      
+
       // Find the actual node inside the current tree to scrape its structural branches
       const findNodeByPath = (root, targetPath) => {
         if (root.fullPath === targetPath) return root;
@@ -147,24 +169,60 @@ export const executeTreeAction = ({ actionType, localTree, selectedNode, setOpen
       };
 
       const targetNodeInTree = findNodeByPath(treeCopy, selectedNode.fullPath);
-      
-      // Gather every single file path nested inside this item (or just the file path if it's a file)
-      const collectedPaths = extractAllFilePaths(targetNodeInTree);
 
+      // Gather every single file path nested inside this item (or just the file path if it's a file)
+      const collectedResources = extractAllResources(targetNodeInTree);
       removeNodeFromTree(treeCopy, selectedNode.fullPath);
-      
-      return { 
-        updatedTree: treeCopy, 
-        targetSelection: null, 
+
+      return {
+        updatedTree: treeCopy,
+        targetSelection: null,
         shouldClearSelection: true,
-        // 🚀 Forward the array of paths up to the component controller
-        deletedFilePathsArray: collectedPaths
+        deletedFilePathsArray: collectedResources.files,  // Only files
+        deletedLinkPathsArray: collectedResources.links,  // Only links
       };
     }
 
     case "COLLAPSE_ALL":
       setOpenFolders(localTree.fullPath ? { [localTree.fullPath]: true } : {});
       return null;
+
+    case "ADD_LINK": {
+      // 1. Ask for both inputs in one single prompt box
+      const userInput = prompt(
+        "Enter Link Title and URL separated by a comma\n(e.g., Project Docs, google.com):",
+      );
+
+      // Cancel if they hit escape or didn't use a comma
+      if (!userInput || !userInput.includes(",")) return null;
+
+      // 2. Split the input. (We join the URL parts back together just in case the URL itself contained commas!)
+      const [namePart, ...urlParts] = userInput.split(",");
+      const name = namePart.trim();
+      const url = urlParts.join(",").trim();
+
+      // Cancel if either part was left blank
+      if (!name || !url) return null;
+
+      const newLinkPath = `${targetFolder.fullPath}/${name}`.replace(
+        /\/+/g,
+        "/",
+      );
+
+      const newLinkNode = {
+        name,
+        fullPath: newLinkPath,
+        isDirectory: false,
+        isLink: true,
+        isNewUnsaved: true,
+        destinationUrl: url,
+      };
+
+      insertNodeIntoTree(treeCopy, targetFolder.fullPath, newLinkNode);
+      setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
+
+      return { updatedTree: treeCopy, targetSelection: newLinkNode };
+    }
 
     default:
       return null;

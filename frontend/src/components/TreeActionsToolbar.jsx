@@ -1,4 +1,4 @@
-import { FilePlus2, FolderPlus, Trash2, FolderMinus } from 'lucide-react';
+import { FilePlus2, FolderPlus, Trash2, FolderMinus, Link } from 'lucide-react';
 
 export default function TreeActionsToolbar({ selectedNode, onAction }) {
   // Determine text description helper contextual labels
@@ -30,6 +30,14 @@ export default function TreeActionsToolbar({ selectedNode, onAction }) {
         title="Add New Folder"
       >
         <FolderPlus size={14} />
+      </button>
+
+      <button
+        onClick={() => onAction("ADD_LINK")}
+        className="p-1.5 hover:bg-white hover:shadow-xs rounded-md text-slate-600 transition-all cursor-pointer"
+        title="Add Web Link Reference"
+      >
+        <Link size={14} />
       </button>
 
       {/* 3. Collapse All Action */}

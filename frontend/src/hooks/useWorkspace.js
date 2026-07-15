@@ -145,6 +145,48 @@ export function useWorkspace() {
     }
   };
 
+  // Add this inside useWorkspace.js, right next to your handleSaveChanges function
+  const handleUpdateLink = async (newUrl) => {
+    if (!selectedNode?.fullPath) return;
+    
+    try {
+      // Hit your new PATCH endpoint
+      await api.patch("/update-link", {
+        resourcePath: selectedNode.fullPath,
+        destinationUrl: newUrl
+      });
+      
+      // Update the local tree state immediately so the UI reflects the change
+      const updateTreeRecursively = (nodes) => {
+        return nodes.map(node => {
+          if (node.fullPath === selectedNode.fullPath) {
+            return { ...node, destinationUrl: newUrl };
+          }
+          if (node.children) {
+            return { ...node, children: updateTreeRecursively(node.children) };
+          }
+          return node;
+        });
+      };
+
+      setTreeData(prevTree => {
+        if (!prevTree) return prevTree;
+        // If root itself was somehow a link (unlikely, but safe to check)
+        if (prevTree.fullPath === selectedNode.fullPath) {
+           return { ...prevTree, destinationUrl: newUrl };
+        }
+        return { ...prevTree, children: updateTreeRecursively(prevTree.children || []) };
+      });
+      
+      // Also update the currently selected node to force the preview panel to re-render
+      setSelectedNode(prev => ({ ...prev, destinationUrl: newUrl }));
+      
+      triggerToast("success", "Link destination updated!");
+    } catch (err) {
+      triggerToast("error", err.response?.data?.message || "Failed to update link");
+    }
+  };
+
   return {
     treeData,
     focusedNode,
@@ -163,5 +205,6 @@ export function useWorkspace() {
     fetchFileFromDatabase,
     handleSaveChanges,
     handleManualRefresh, // Expose this clean pipeline out to App.jsx!
+    handleUpdateLink
   };
 }

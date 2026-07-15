@@ -46,7 +46,23 @@ export default function SidebarExplorer({
           .catch((err) =>
             console.error("Content cleanup failed:", err.message),
           );
+
       }
+
+      // 2. Clean up link resources
+      if (
+        Array.isArray(result.deletedLinkPathsArray) &&
+        result.deletedLinkPathsArray.length > 0
+      ) {
+        result.deletedLinkPathsArray.forEach((path) => {
+          api
+            .delete("/delete-link", {
+              data: { resourcePath: path },
+            })
+            .catch((err) => console.error("Link database cleanup failed:", err.message));
+        });
+      }
+      
       try {
         // 1. Sync the filesystem tree layout first
         await pushTreeSnapshotToServer(result.updatedTree, nextSelection);
@@ -58,6 +74,12 @@ export default function SidebarExplorer({
           await api.post("/add-file-content", {
             filePath: result.targetSelection.fullPath,
             textData: defaultText,
+          });
+        }
+        if (actionType === "ADD_LINK" && result.targetSelection) {
+          await api.post("/create-link", {
+            resourcePath: result.targetSelection.fullPath,
+            destinationUrl: result.targetSelection.destinationUrl,
           });
         }
       } catch (err) {

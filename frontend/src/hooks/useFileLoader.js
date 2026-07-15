@@ -23,6 +23,12 @@ export function useFileLoader({
       return;
     }
 
+    // 🔥 ADD THIS NEW BLOCK: Skip text loading if the node is a web link
+    if (selectedNode.isLink) {
+      setMarkdownContent(""); 
+      return;
+    }
+
     // Serving data instantly from memory cache if present
     if (fileCache[selectedNode.fullPath] !== undefined) {
       setMarkdownContent(fileCache[selectedNode.fullPath]);

@@ -22,7 +22,8 @@ export default function App() {
     setIsSidebarOpen,
     fetchFileFromDatabase,
     handleSaveChanges,
-    handleManualRefresh
+    handleManualRefresh,
+    handleUpdateLink
   } = useWorkspace();
 
   return (
@@ -60,6 +61,7 @@ export default function App() {
             markdownContent={markdownContent}
             setMarkdownContent={setMarkdownContent}
             onSave={handleSaveChanges}
+            onUpdateLink={handleUpdateLink}
           />
         </div>
       </div>

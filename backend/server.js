@@ -10,8 +10,9 @@ import bulkSync from './routes/bulkSync.js'
 import fetchFileContent from './routes/fetchFileContent.js'
 import FileContentCollection from './routes/FileContentCollection.js'
 import getUpdatedAt from './routes/getUpdatedAt.js'
-import LogApi from './routes/Log.js'
+//import LogApi from './routes/Log.js'
 //import apiLogger from './middlewares/logger.js';
+import LinksRoute from './routes/Links.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,7 +41,7 @@ app.use('/api',getUpdatedAt);
 
 app.use('/api' , FileContentCollection)
 
-app.use( '/api', LogApi)
+app.use('/api', LinksRoute)
 
 // Existing local/serverless runtime execution handlers
 if (process.env.NODE_ENV !== 'production') {
