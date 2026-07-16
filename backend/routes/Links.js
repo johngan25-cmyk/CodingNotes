@@ -139,24 +139,70 @@ router.patch("/update-link", async (req, res) => {
   }
 });
 
-router.delete("/delete-link", async (req, res) => {
-  const { resourcePath } = req.body;
+router.post("/create-links-bulk", async (req, res) => {
+  const { links } = req.body;
 
-  if (!resourcePath) {
-    return res.status(400).json({ success: false, message: "Parameter 'resourcePath' is required." });
+  // 1. Validate that we actually received an array
+  if (!Array.isArray(links) || links.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Please provide a valid 'links' array in the request body." 
+    });
   }
 
   try {
-    const deleted = await LinkResource.findOneAndDelete({ resourcePath });
-    
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: "Resource  not found." });
-    }
-    return res.status(200).json({ success: true, message: "Link resource cleared successfully." });
+    // 2. Sanitize all URLs in the batch
+    const sanitizedLinks = links.map(link => {
+      let safeUrl = link.destinationUrl;
+      if (!/^https?:\/\//i.test(safeUrl)) {
+        safeUrl = `https://${safeUrl}`;
+      }
+      return {
+        resourcePath: link.resourcePath,
+        destinationUrl: safeUrl
+      };
+    });
+
+    // 3. Perform the bulk database insertion
+    // ordered: false means if one path is a duplicate, it skips it but inserts the rest!
+    const result = await LinkResource.insertMany(sanitizedLinks, { ordered: false });
+
+    return res.status(201).json({ 
+      success: true, 
+      message: `Successfully bulk registered ${result.length} links.`, 
+      data: result 
+    });
+
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 });
+router.delete("/delete-links-bulk", async (req, res) => {
+  const { resourcePaths } = req.body;
 
+  // 1. Validate that we actually received an array of paths
+  if (!Array.isArray(resourcePaths) || resourcePaths.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Please provide a valid 'resourcePaths' array in the request body." 
+    });
+  }
+
+  try {
+    // 2. Perform the bulk deletion using MongoDB's highly optimized $in operator
+    const result = await LinkResource.deleteMany({
+      resourcePath: { $in: resourcePaths }
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: `Successfully cleared ${result.deletedCount} link resources.`,
+      deletedCount: result.deletedCount 
+    });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
 export default router;
 

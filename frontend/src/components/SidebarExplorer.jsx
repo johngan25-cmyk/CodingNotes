@@ -49,18 +49,18 @@ export default function SidebarExplorer({
 
       }
 
-      // 2. Clean up link resources
+      // 2. 🔥 Clean up link resources (BULK OPTIMIZED)
       if (
         Array.isArray(result.deletedLinkPathsArray) &&
         result.deletedLinkPathsArray.length > 0
       ) {
-        result.deletedLinkPathsArray.forEach((path) => {
-          api
-            .delete("/delete-link", {
-              data: { resourcePath: path },
-            })
-            .catch((err) => console.error("Link database cleanup failed:", err.message));
-        });
+        api
+          .delete("/delete-links-bulk", {
+            data: { resourcePaths: result.deletedLinkPathsArray },
+          })
+          .catch((err) => 
+            console.error("Bulk link cleanup failed:", err.message)
+          );
       }
       
       try {
@@ -76,11 +76,24 @@ export default function SidebarExplorer({
             textData: defaultText,
           });
         }
-        if (actionType === "ADD_LINK" && result.targetSelection) {
-          await api.post("/create-link", {
-            resourcePath: result.targetSelection.fullPath,
-            destinationUrl: result.targetSelection.destinationUrl,
-          });
+        // 🔥 3. Register new link(s) in the database
+        if (actionType === "ADD_LINK") {
+          // Path A: Bulk Array Upload
+          if (result.bulkNodes && result.bulkNodes.length > 0) {
+            const payload = result.bulkNodes.map((node) => ({
+              resourcePath: node.fullPath,
+              destinationUrl: node.destinationUrl,
+            }));
+            
+            await api.post("/create-links-bulk", { links: payload });
+          } 
+          // Path B: Single Link Upload
+          else if (result.targetSelection) {
+            await api.post("/create-link", {
+              resourcePath: result.targetSelection.fullPath,
+              destinationUrl: result.targetSelection.destinationUrl,
+            });
+          }
         }
       } catch (err) {
         console.error("Auto-initialization chain failed:", err.message);

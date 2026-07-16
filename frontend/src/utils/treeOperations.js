@@ -188,27 +188,67 @@ export const executeTreeAction = ({
       return null;
 
     case "ADD_LINK": {
-      // 1. Ask for both inputs in one single prompt box
       const userInput = prompt(
-        "Enter Link Title and URL separated by a comma\n(e.g., Project Docs, google.com):",
+        "Add a Single Link: Enter 'Name, URL'\nBulk Add: Paste a JSON array like [{'name':'Google', 'url':'google.com'}]"
       );
+      
+      if (!userInput) return null;
+      const trimmedInput = userInput.trim();
 
-      // Cancel if they hit escape or didn't use a comma
-      if (!userInput || !userInput.includes(",")) return null;
+      // 🔥 BULK UPLOAD PATH: Check if the input is a JSON array
+      if (trimmedInput.startsWith("[") && trimmedInput.endsWith("]")) {
+        try {
+          const parsedArray = JSON.parse(trimmedInput);
+          if (!Array.isArray(parsedArray)) throw new Error("Not an array");
 
-      // 2. Split the input. (We join the URL parts back together just in case the URL itself contained commas!)
+          const createdNodes = [];
+
+          // Loop through each item in the JSON and inject it into the tree
+          parsedArray.forEach(item => {
+            if (item.name && item.url) {
+              const newLinkPath = `${targetFolder.fullPath}/${item.name}`.replace(/\/+/g, "/");
+              
+              const newLinkNode = {
+                name: item.name,
+                fullPath: newLinkPath,
+                isDirectory: false,
+                isLink: true,
+                isNewUnsaved: true,
+                destinationUrl: item.url,
+              };
+
+              insertNodeIntoTree(treeCopy, targetFolder.fullPath, newLinkNode);
+              createdNodes.push(newLinkNode);
+            }
+          });
+
+          if (createdNodes.length === 0) return null;
+
+          setOpenFolders((prev) => ({ ...prev, [targetFolder.fullPath]: true }));
+          
+          // Return the new 'bulkNodes' array so the sidebar knows to fire the bulk API!
+          return { 
+            updatedTree: treeCopy, 
+            targetSelection: createdNodes[0], // Focus the first link in the batch
+            bulkNodes: createdNodes 
+          };
+
+        } catch (err) {
+          alert("Invalid JSON format. Please ensure it is a valid array of objects.");
+          return null;
+        }
+      }
+
+      // 👤 SINGLE UPLOAD PATH: Fallback to the original comma-separated logic
+      if (!userInput.includes(",")) return null;
+
       const [namePart, ...urlParts] = userInput.split(",");
       const name = namePart.trim();
       const url = urlParts.join(",").trim();
 
-      // Cancel if either part was left blank
       if (!name || !url) return null;
 
-      const newLinkPath = `${targetFolder.fullPath}/${name}`.replace(
-        /\/+/g,
-        "/",
-      );
-
+      const newLinkPath = `${targetFolder.fullPath}/${name}`.replace(/\/+/g, "/");
       const newLinkNode = {
         name,
         fullPath: newLinkPath,
